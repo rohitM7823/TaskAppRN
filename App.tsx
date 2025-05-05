@@ -5,7 +5,7 @@
  * @format
  */
 
-import React from 'react';
+import React, { use, useEffect } from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   ScrollView,
@@ -54,7 +54,68 @@ function Section({children, title}: SectionProps): React.JSX.Element {
   );
 }
 
+interface DayModel {
+  day: string;
+  start: Date;
+  end: Date;
+  isOpen: boolean;
+  slots: string;
+}
+
+class TimeSlotsGenerator {
+
+  static generateTimeSlots(start: Date, end: Date, interval: number): string[] {
+    const timeSlots: string[] = [];
+    const currentTime = new Date(start);
+
+  
+    while (currentTime <= end) {
+      const hours = currentTime.getHours().toString().padStart(2, '0');
+      const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+      if(`${hours}:${minutes}` !== '08:00') {
+        timeSlots.push(`${hours}:${minutes}`);
+      }
+      
+      currentTime.setMinutes(currentTime.getMinutes() + interval);
+    }
+
+    return timeSlots;
+  }
+
+}
+
+
+
 function App(): React.JSX.Element {
+
+  const [dayModels, setDayModels] = React.useState([]);
+
+  useEffect(() =>  {
+    fetch('https://sbtest2.myvtd.site/api/sample').then(async (response)  => {
+      if (!response.ok) { 
+        const data = await response.json();
+    
+        const days = data.map((item: any)=> {
+          const startDate = new Date(item.start_at);
+          const endDate = new Date(item.end_at);
+
+          const dayModel: DayModel = {
+            day: item.day,
+            start: startDate,
+            end: endDate,
+            isOpen: item.is_open,
+            slots: TimeSlotsGenerator.generateTimeSlots(startDate, endDate, 30).join(","),
+          };
+          return dayModel;
+        }).toArray();
+;  
+        setDayModels(days);
+      }
+    }).catch((error) => {
+      console.error('Error fetching data:', error);
+    });  
+  }, []);
+
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
@@ -78,33 +139,13 @@ function App(): React.JSX.Element {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
       />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
-        </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+      <Section title="Day Models">
+          {dayModels.filter((day: DayModel)=> day.isOpen).map((dayModel: DayModel, index: number) => (
+            <Text key={index} style={styles.sectionDescription}>
+              {dayModel.day}: {dayModel.start.toDateString()} - {dayModel.end.toDateString()}\n({'Slots: '+ dayModel.slots})
+            </Text>
+          ))} 
+        </Section>
     </View>
   );
 }
