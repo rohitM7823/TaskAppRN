@@ -88,11 +88,11 @@ class TimeSlotsGenerator {
 
 function App(): React.JSX.Element {
 
-  const [dayModels, setDayModels] = React.useState([]);
+  const [dayModels, setDayModels] = React.useState<DayModel[]>([]);
 
   useEffect(() =>  {
     fetch('https://sbtest2.myvtd.site/api/sample').then(async (response)  => {
-      if (!response.ok) { 
+      if (response.ok) { 
         const data = await response.json();
     
         const days = data.map((item: any)=> {
@@ -107,8 +107,8 @@ function App(): React.JSX.Element {
             slots: TimeSlotsGenerator.generateTimeSlots(startDate, endDate, 30).join(","),
           };
           return dayModel;
-        }).toArray();
-;  
+        });
+        
         setDayModels(days);
       }
     }).catch((error) => {
